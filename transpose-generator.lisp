@@ -80,7 +80,8 @@
                                           collect (if twiddle
                                                       (let ((factor (/ (mod (* i j -1 twiddle)
                                                                             total-size)
-                                                                       total-size)))
+                                                                       total-size))
+                                                            (coef   `(aref twiddle ,(+ total-size dst-index))))
                                                         (case factor
                                                           (0 src)
                                                           (1/2
@@ -89,9 +90,12 @@
                                                            `(mul+i ,src))
                                                           (3/4
                                                            `(mul-i ,src))
+                                                          ((1/8 5/8)
+                                                           `(mul+/-sqrt+i ,src (realpart ,coef)))
+                                                          ((3/8 7/8)
+                                                           `(mul+/-sqrt-i ,src (realpart ,coef)))
                                                           (t
-                                                           `(* (aref twiddle ,(+ total-size dst-index))
-                                                               ,src))))
+                                                           `(* ,coef ,src))))
                                                       src))))
                          dst))
                       ((= size1 size2)
