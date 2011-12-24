@@ -39,7 +39,7 @@
                 (type index ,_size)
                 (type (member -1 1) ,_direction))
        (if (>= (truncate (length ,_factors) 2)
-               size)
+               ,_size)
            ,_factors
            (%ensure-factor-size ',symbol ,_size ,_direction)))))
 
