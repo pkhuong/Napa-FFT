@@ -56,7 +56,7 @@
                   (declaim (type (simple-array (fft-function :scale t) (,(1+ max)))
                                  *forward-scale* *backward-scale*))
                   (multiple-value-bind (fwd fwd-scale bwd bwd-scale)
-                    (build-fft-routine-vectors ,lb ,max)
+                      (build-fft-routine-vectors ,lb ,max)
                     (setf *forward*        fwd
                           *forward-scale*  fwd-scale
                           *backward*       bwd
