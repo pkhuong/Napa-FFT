@@ -26,10 +26,11 @@ Installation
 Napa-FFT can be loaded by using ASDF; the system is defined in
 `napa-fft.asd`.  The system is typically registered with ADSF by
 adding a symbolic link to that file in a directory under
-`asdf:*central-registry*`.  If Quicklisp is installed, [FILL ME].
+`asdf:*central-registry*`.  If Quicklisp is installed, the Napa-FFT
+directory can simply be copied under `~/quicklisp/local-projects/`.
 
 Once registered with ASDF, Napa-FFT can be loaded by executing
-`(asdf:oos 'asdf:load-op "napa-fft")`, or, if Quicklisp is installed,
+`(asdf:oos 'asdf:load-op "napa-fft")`, or, with Quicklisp,
 `(ql:quickload "napa-fft")`.
 
 Napa-FFT generates a fairly large function at compile-time; it may
