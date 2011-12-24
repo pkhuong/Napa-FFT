@@ -1,6 +1,7 @@
 (in-package "NAPA-FFT")
 
-(declaim (inline mul+i mul-i))
+(declaim (inline mul+i mul-i
+                 mul+/-sqrt+i mul+/-sqrt-i))
 (defun mul+i (x)
   (declare (type complex-sample x))
   #+ (and sbcl complex-float-vops)
@@ -14,6 +15,24 @@
   (conjugate (sb-vm::swap-complex x))
   #- (and sbcl complex-float-vops)
   (* x #c(0 -1d0)))
+
+(defun mul+/-sqrt+i (x scale)
+  (declare (type complex-sample x)
+           (type double-float scale))
+  #+ (and sbcl complex-float-vops)
+  (let ((x (* x scale)))
+    (+ x (sb-vm::swap-complex (conjugate x))))
+  #- (and sbcl complex-float-vops)
+  (* x (complex scale scale)))
+
+(defun mul+/-sqrt-i (x scale)
+  (declare (type complex-sample x)
+           (type double-float scale))
+  #+ (and sbcl complex-float-vops)
+  (let ((x (* x scale)))
+    (- x (sb-vm::swap-complex (conjugate x))))
+  #- (and sbcl complex-float-vops)
+  (* x (complex scale (- scale))))
 
 (defun make-cooley-tukey-factors (size1 size2 direction
                                    &optional (coeffs (make-array
