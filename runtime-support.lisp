@@ -55,19 +55,23 @@
             (setf (aref coeffs (+ offset k)) (cis factor))))))
     coeffs))
 
+(declaim (type (integer -1) +factor-bias+))
+(defconstant +factor-bias+ 0)
+
 (defun make-all-factors (log-max-size direction &optional previous)
   (declare (type (or null complex-sample-array) previous))
   (when previous
-    (let ((length (length previous)))
-      (assert (= 1 (logcount length)))
+    (let ((length (- (length previous) +factor-bias+)))
+      (assert (power-of-two-p length))
       (when (>= (integer-length (1- length)) (1+ log-max-size))
         (return-from make-all-factors previous))))
-  (let ((all-factors (make-array (* 2 (ash 1 log-max-size))
+  (let ((all-factors (make-array (+ (* 2 (ash 1 log-max-size))
+                                    +factor-bias+)
                                  :element-type 'complex-sample)))
     (cond (previous
            (replace all-factors previous))
           (t
-           (setf (aref all-factors 0) #c(0d0 0d0))))
+           (fill all-factors #c(0d0 0d0) :end (1+ +factor-bias+))))
     (loop for i from (if previous
                          (integer-length (1- (length previous)))
                          0)
@@ -75,7 +79,8 @@
       (let* ((total-size (ash 1 i))
              (size1      (ash 1 (truncate i 2)))
              (size2      (ash 1 (truncate (1+ i) 2))))
-        (make-cooley-tukey-factors size1 size2 direction all-factors total-size)))
+        (make-cooley-tukey-factors size1 size2 direction all-factors
+                                   (+ total-size +factor-bias+))))
     all-factors))
 
 (defun one-point-fft (twiddle size dst dst-offset src src-offset
