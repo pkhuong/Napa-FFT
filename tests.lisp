@@ -11,11 +11,11 @@
          (tmp1   (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
          (tmp2   (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
          (instance (bordeaux-fft::make-fourier-instance size 1))
-         (repeats  128)
+         (repeats  10)
          (inner-loop (if (> size (ash 1 16)) 1 10))
          (normal-times (make-array repeats))
          (fft-times    (make-array repeats))
-         (factors  *fwd-factors*)
+         (factors    (ensure-factor-size *fwd-factors* size 1))
          (scale   (* 1d0 inner-loop (* size (integer-length (1- size))))))
     (dotimes (i repeats (values (/ (quantile normal-times 1d-1)
                                    scale)
@@ -41,8 +41,8 @@
                      dest1 dest2)
         (break "Discrepancy at ~A: ~A ~A~%" i dest1 dest2)))))
 
-(defun test-fft-vector (vector &optional (max (length vector)))
-  (loop for i from 1 below max
+(defun test-fft-vector (vector &optional (max (length vector)) (min 1))
+  (loop for i from min below max
         for len = (ash 1 i)
         do (let ((fun (aref vector i)))
              (sb-ext:gc :full t)
@@ -68,3 +68,24 @@
                                           (test-ffts fun len)
                                         (list (/ slow fast) fast slow))))))
 
+#||
+Parallel:
+* (parallel-future:with-context (8) (test-fft-vector *forward* 27 20))
+size: 20
+   4.753233346171666d0 2.8306907653808593d0 13.454933738708496d0
+size: 21
+   4.915500455687723d0 2.792923791067941d0 13.728618167695545d0
+size: 22
+   5.336004697772222d0 2.6783089421012183d0 14.291469097137451d0
+size: 23
+   5.890097446393686d0 2.591226691785066d0 15.262577720310377d0
+size: 24
+   6.262575770053327d0 2.4720080445210137d0 15.481137682994207d0
+size: 25
+   6.628124577258128d0 2.3695152401924133d0 15.705442199707031d0
+size: 26
+   7.147543084293575d0 2.246080761918655d0 16.053959016616528d0 
+NIL
+
+
+||#
