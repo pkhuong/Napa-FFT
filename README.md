@@ -36,8 +36,8 @@ Once registered with ASDF, Napa-FFT can be loaded by executing
 Napa-FFT generates a fairly large function at compile-time; it may
 take a long while to compile `interface.lisp` (the `(fill-vectors 8)`
 form), or even exhaust the heap on small machines.  Lowering the value
-passed to `fill-vector` to 4 should yield a sufficiently simpler
-function.
+passed to `fill-vector` to 6 (or 4 in very resource-constrained
+environment) should yield a sufficiently simpler function.
 
 Normal FFT functions
 --------------------
