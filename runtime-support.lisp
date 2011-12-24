@@ -15,7 +15,7 @@
   #- (and sbcl complex-float-vops)
   (* x #c(0 -1d0)))
 
-(defun make-cooley-tuckey-factors (size1 size2 direction
+(defun make-cooley-tukey-factors (size1 size2 direction
                                    &optional (coeffs (make-array
                                                       (* size1 size2)
                                                       :element-type 'complex-sample))
@@ -56,7 +56,7 @@
       (let* ((total-size (ash 1 i))
              (size1      (ash 1 (truncate i 2)))
              (size2      (ash 1 (truncate (1+ i) 2))))
-        (make-cooley-tuckey-factors size1 size2 direction all-factors total-size)))
+        (make-cooley-tukey-factors size1 size2 direction all-factors total-size)))
     all-factors))
 
 (defun one-point-fft (twiddle size dst dst-offset src src-offset
