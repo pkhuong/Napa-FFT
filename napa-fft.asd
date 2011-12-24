@@ -1,7 +1,7 @@
 (asdf:defsystem "napa-fft"
   :version "0.0.1"
   :licence "BSD"
-  :description "Generates code to execute Fast Fourier Transforms"
+  :description "Fast Fourier Transforms in Common Lisp based on a code generator"
   :serial t
   :components ((:file "package")
                (:file "types")
