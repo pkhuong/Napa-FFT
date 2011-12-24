@@ -43,8 +43,8 @@ Normal FFT functions
 --------------------
 
 Napa-FFT only supports a single type of input and output vectors:
-arrays of double complexes values.  Scratch space and configuration
-data can be cached through instances of `fft-instance`.
+arrays of double complex values.  Scratch space and configuration data
+can be cached through instances of `fft-instance`.
 
 _It is important to note that Napa-FFT currently only supports input
 sizes that are powers of two; I have vague plans to improve on the
@@ -63,8 +63,8 @@ Most Napa-FFT users will only use a single function, `FFT` or `SFFT`
 
 Transforms the input `src`.  `src` is coerced to a
 `complex-sample-array` as needed, and `direction` defaults to
-`forward`.  When `dst` is provided, the results are written in that
-`complex-sample-array`.
+`:forward` (`:backward` specifies an inverse transform).  When `dst`
+is provided, the results are written in that `complex-sample-array`.
 
 > Function `fft (instance src &optional dst)`
 
@@ -87,7 +87,7 @@ provided (as a double float value)
 Mutates the `fft-instance` to specify the `size`, `direction` or
 `scale` of the transformation.  When `scale` is provided but `nil`, it
 is reset according to `direction`; this is usually the desired
-behavior when changing `direction`.
+behavior when changing `direction` or `size`.
 
 > Variable `*fft-instance*`
 
