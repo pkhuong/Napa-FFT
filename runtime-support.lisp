@@ -1,22 +1,29 @@
 (in-package "NAPA-FFT")
 
-(declaim (inline mul+i mul-i
-                 mul+/-sqrt+i mul+/-sqrt-i))
-(defun mul+i (x)
+(defmacro define-inline-function (name (&rest args) &body body)
+  `(progn
+     (declaim (inline ,name))
+     (defun ,name (,@args)
+       ,@body)
+     (define-compiler-macro ,name (&rest arg-forms)
+       `((lambda (,@',args) ,@',body)
+         ,@arg-forms))))
+
+(define-inline-function mul+i (x)
   (declare (type complex-sample x))
   #+ (and sbcl complex-float-vops)
   (sb-vm::swap-complex (conjugate x))
   #- (and sbcl complex-float-vops)
   (* x #c(0 1d0)))
 
-(defun mul-i (x)
+(define-inline-function mul-i (x)
   (declare (type complex-sample x))
   #+ (and sbcl complex-float-vops)
   (conjugate (sb-vm::swap-complex x))
   #- (and sbcl complex-float-vops)
   (* x #c(0 -1d0)))
 
-(defun mul+/-sqrt+i (x scale)
+(define-inline-function mul+/-sqrt+i (x scale)
   (declare (type complex-sample x)
            (type double-float scale))
   #+ (and sbcl complex-float-vops)
@@ -25,7 +32,7 @@
   #- (and sbcl complex-float-vops)
   (* x (complex scale scale)))
 
-(defun mul+/-sqrt-i (x scale)
+(define-inline-function mul+/-sqrt-i (x scale)
   (declare (type complex-sample x)
            (type double-float scale))
   #+ (and sbcl complex-float-vops)
@@ -56,7 +63,7 @@
     coeffs))
 
 (declaim (type (integer -1) +factor-bias+))
-(defconstant +factor-bias+ 0)
+(defconstant +factor-bias+ -1)
 
 (defun make-all-factors (log-max-size direction &optional previous)
   (declare (type (or null complex-sample-array) previous))
