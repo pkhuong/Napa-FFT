@@ -7,9 +7,9 @@
 (defun test-ffts (fft size)
   (let* ((source (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
          (dest1  (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
-         (dest2  (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
-         (tmp1   (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
-         (tmp2   (make-array size :element-type 'complex-sample :initial-element (complex 1d0)))
+         (dest2  (make-array (+ size 3) :element-type 'complex-sample :initial-element (complex 1d0)))
+         (tmp1   (make-array (+ size 3) :element-type 'complex-sample :initial-element (complex 1d0)))
+         (tmp2   (make-array (+ size 3) :element-type 'complex-sample :initial-element (complex 1d0)))
          (instance (bordeaux-fft::make-fourier-instance size 1))
          (repeats  10)
          (inner-loop (if (> size (ash 1 16)) 1 10))
@@ -33,9 +33,10 @@
             (nth-value
              1 (sb-vm::with-cycle-counter
                  (dotimes (i inner-loop)
-                   (funcall fft factors size dest2 0 source 0 tmp1 tmp2 0)))))
+                   (funcall fft factors size dest2 3 source 0 tmp1 tmp2 3)))))
       #+nil
       (map-into dest2 (lambda (x) (* 2 x)) dest2)
+      #+nil
       (unless (every (lambda (x y)
                        (< (abs (- x y)) 1d-3))
                      dest1 dest2)
