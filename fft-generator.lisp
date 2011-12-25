@@ -2,22 +2,26 @@
 
 (defvar *fft-inline* 4)
 
-(defun generate-fft/2 (scale &optional (steps 1) (stepd 1))
+(defun generate-fft/2 (scale &key (steps 1) (stepd 1) (offsets 0) (offsetd 0))
   `(lambda (twiddle dst dst-offset src src-offset ,@(and scale '(scale)))
      (declare (type index dst-offset src-offset)
               (type complex-sample-array dst src)
               ,@(and scale '((type double-float scale)))
               (ignore twiddle))
-     (let ((s0 (aref src     src-offset))
-           (s1 (aref src (+ src-offset ,steps))))
+     (let ((s0 (aref src (+ src-offset ,offsets)))
+           (s1 (aref src (+ src-offset ,(+ steps offsets)))))
        ,(if scale
-            `(setf (aref dst     dst-offset)        (* scale (+ s0 s1))
-                   (aref dst (+ dst-offset ,stepd)) (* scale (- s0 s1)))
-            `(setf (aref dst     dst-offset)        (+ s0 s1)
-                   (aref dst (+ dst-offset ,stepd)) (- s0 s1)))
+            `(setf (aref dst (+ dst-offset ,offsetd))
+                   (* scale (+ s0 s1))
+                   (aref dst (+ dst-offset ,(+ stepd offsetd)))
+                   (* scale (- s0 s1)))
+            `(setf (aref dst (+ dst-offset ,offsetd))
+                   (+ s0 s1)
+                   (aref dst (+ dst-offset ,(+ stepd offsetd)))
+                   (- s0 s1)))
        dst)))
 
-(defun generate-fft/4 (direction scale &optional (steps 1) (stepd 1))
+(defun generate-fft/4 (direction scale &key (steps 1) (stepd 1) (offsets 0) (offsetd 0))
   (flet ((scalify (form)
            (if scale
                `(* scale ,form)
@@ -28,19 +32,19 @@
                 ,@(and scale '((type double-float scale)))
                 (ignore twiddle))
        ,(if (plusp direction)
-            `(let* ((s0 (aref src                 src-offset))
-                    (s2 (aref src (+ src-offset ,(* 2 steps))))
+            `(let* ((s0 (aref src (+ src-offset ,offsets)))
+                    (s2 (aref src (+ src-offset ,(+ (* 2 steps) offsets))))
                     (s0+s2 (+ s0 s2))
                     (s0-s2 (- s0 s2))
-                    (s1 (aref src (+      src-offset  ,steps)))
-                    (s3 (aref src (+ src-offset ,(* 3 steps))))
+                    (s1 (aref src (+ src-offset ,(+ steps offsets))))
+                    (s3 (aref src (+ src-offset ,(+ (* 3 steps) offsets))))
                     (s1+s3 (+ s1 s3))
                     (s1-s3 (- (mul+i s1)
                               (mul+i s3))))
-               (setf (aref dst                 dst-offset)  ,(scalify `(+ s0+s2 s1+s3))
-                     (aref dst (+      dst-offset  ,stepd)) ,(scalify `(- s0-s2 s1-s3))
-                     (aref dst (+ dst-offset ,(* 2 stepd))) ,(scalify `(- s0+s2 s1+s3))
-                     (aref dst (+ dst-offset ,(* 3 stepd))) ,(scalify `(+ s0-s2 s1-s3)))
+               (setf (aref dst (+ dst-offset ,offsetd))                 ,(scalify `(+ s0+s2 s1+s3))
+                     (aref dst (+ dst-offset ,(+ stepd offsetd)))       ,(scalify `(- s0-s2 s1-s3))
+                     (aref dst (+ dst-offset ,(+ (* 2 stepd) offsetd))) ,(scalify `(- s0+s2 s1+s3))
+                     (aref dst (+ dst-offset ,(+ (* 3 stepd) offsetd))) ,(scalify `(+ s0-s2 s1-s3)))
                dst
                #+nil
                (setf (aref dst      dst-offset)  (+ s0 s1 s2 s3)
@@ -56,50 +60,52 @@
                                                     (mul+i s1)
                                                     (- s2)
                                                     (mul-i s3))))
-            `(let* ((s0 (aref src      src-offset))
-                    (s2 (aref src (+ src-offset ,(* 2 steps))))
+            `(let* ((s0 (aref src (+ src-offset ,offsets)))
+                    (s2 (aref src (+ src-offset ,(+ (* 2 steps) offsets))))
                     (s0+s2 (+ s0 s2))
                     (s0-s2 (- s0 s2))
-                    (s1 (aref src (+      src-offset  ,steps)))
-                    (s3 (aref src (+ src-offset ,(* 3 steps))))
+                    (s1 (aref src (+ src-offset ,(+ steps offsets))))
+                    (s3 (aref src (+ src-offset ,(+ (* 3 steps) offsets))))
                     (s1+s3 (+ s1 s3))
                     (s1-s3 (- (mul+i s1)
                               (mul+i s3))))
-               (setf (aref dst                 dst-offset)  ,(scalify `(+ s0+s2 s1+s3))
-                     (aref dst (+      dst-offset  ,stepd)) ,(scalify `(+ s0-s2 s1-s3))
-                     (aref dst (+ dst-offset ,(* 2 stepd))) ,(scalify `(- s0+s2 s1+s3))
-                     (aref dst (+ dst-offset ,(* 3 stepd))) ,(scalify `(- s0-s2 s1-s3)))
+               (setf (aref dst (+ dst-offset ,offsetd))                 ,(scalify `(+ s0+s2 s1+s3))
+                     (aref dst (+ dst-offset ,(+ stepd offsetd)))       ,(scalify `(+ s0-s2 s1-s3))
+                     (aref dst (+ dst-offset ,(+ (* 2 stepd) offsetd))) ,(scalify `(- s0+s2 s1+s3))
+                     (aref dst (+ dst-offset ,(+ (* 3 stepd) offsetd))) ,(scalify `(- s0-s2 s1-s3)))
                dst)))))
 
 (defun generate-fft/8 (direction scale)
   ;; size1: 2
   ;; size2: 4
-  (let ((fft-size1 (generate-fft/2 nil 4))
-        (fft-size2 (generate-fft/4 direction scale 1 2)))
-    `(lambda (twiddle dst dst-offset src src-offset ,@(and scale '(scale)) tmp tmp-offset)
-       (declare (type complex-sample-array dst src twiddle)
-                ,@(and scale '((type double-float scale))))
-       ,@(loop for i below 4
-               collect `(,fft-size1 twiddle
-                                    dst (+ dst-offset ,(* 2 i))
-                                    src (+ src-offset ,i)))
-       (,(generate-transpose-body 2 4 direction)
-        tmp tmp-offset dst dst-offset twiddle)
-       (,@(if scale
-              `(let ((scale2 0d0))
-                 (declare (type double-float scale2))
-                 (setf scale2 scale))
-              '(progn))
-        ,@(loop for i below 2
-                collect `(,fft-size2 twiddle
-                                     dst (+ dst-offset ,i)
-                                     tmp (+ tmp-offset ,(* 4 i))
-                                     ,@(and scale '(scale2)))))
-       dst)))
+  `(lambda (twiddle dst dst-offset src src-offset ,@(and scale '(scale)) tmp tmp-offset)
+     (declare (type complex-sample-array dst src twiddle)
+              ,@(and scale '((type double-float scale))))
+     ,@(loop for i below 4
+             collect `(,(generate-fft/2 nil :steps 4 :offsets i :offsetd (* 2 i))
+                       twiddle
+                       dst dst-offset
+                       src src-offset))
+     (,(generate-transpose-body 2 4 direction)
+      tmp tmp-offset dst dst-offset twiddle)
+     (,@(if scale
+            `(let ((scale2 0d0))
+               (declare (type double-float scale2))
+               (setf scale2 scale))
+            '(progn))
+      ,@(loop for i below 2
+              collect `(,(generate-fft/4 direction scale :stepd 2
+                                                         :offsets (* 4 i)
+                                                         :offsetd i)
+                        twiddle
+                        dst dst-offset
+                        tmp tmp-offset
+                        ,@(and scale '(scale2)))))
+     dst))
 
 (defun generate-fft/16 (direction scale)
-  (let ((fft-size1 (generate-fft/4 direction nil 4))
-        (fft-size2 (generate-fft/4 direction scale 1 4)))
+  (let ((fft-size1 (generate-fft/4 direction nil   :steps 4))
+        (fft-size2 (generate-fft/4 direction scale :stepd 4)))
     `(lambda (twiddle dst dst-offset src src-offset
               ,@(and scale '(scale)) tmp tmp-offset)
        (declare (type complex-sample-array twiddle dst src tmp)
