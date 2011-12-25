@@ -72,7 +72,8 @@
               ,@(cond ((and (<= (* size1 size2) *transpose-unroll*)
                             (member twiddle '(nil -1 1)))
                        `((setf
-                          ,@(loop for i below size1
+                          ,@(loop with sqrt/2 = (/ (sqrt 2d0) 2d0)
+                                  for i below size1
                                   nconc (loop
                                           for j below size2
                                           for dst-index = (+ (* i size2) j)
@@ -93,9 +94,15 @@
                                                           (3/4
                                                            `(mul-i ,src))
                                                           ((1/8 5/8)
-                                                           `(mul+/-sqrt+i ,src (realpart ,coef)))
+                                                           `(mul+/-sqrt+i ,src
+                                                                          ,(case factor
+                                                                             (1/8 sqrt/2)
+                                                                             (t   (- sqrt/2)))))
                                                           ((3/8 7/8)
-                                                           `(mul+/-sqrt-i ,src (realpart ,coef)))
+                                                           `(mul+/-sqrt-i ,src
+                                                                          ,(case factor
+                                                                             (3/8 (- sqrt/2))
+                                                                             (t   sqrt/2))))
                                                           (t
                                                            `(* ,coef ,src))))
                                                       src))))
