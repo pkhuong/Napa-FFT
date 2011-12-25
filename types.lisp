@@ -1,7 +1,8 @@
 (in-package "NAPA-FFT")
 
 (deftype half-index ()
-  `(unsigned-byte #.(truncate (integer-length most-positive-fixnum) 2)))
+  `(and (integer 1)
+        (unsigned-byte #.(truncate (integer-length most-positive-fixnum) 2))))
 
 (deftype index ()
   `(unsigned-byte #. (min (1- (integer-length most-positive-fixnum))
