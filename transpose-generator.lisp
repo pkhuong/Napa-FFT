@@ -63,7 +63,8 @@
 
 (defun generate-transpose-body (size1 size2 &optional twiddle)
   (declare (type (member nil -1 1 t) twiddle))
-  (flet ((gen (&aux (total-size (* size1 size2)))
+  (flet ((gen (&aux (total-size (* size1 size2))
+                    (twiddle-base (+ +factor-bias+ total-size)))
            (values
             `((declare (type complex-sample-array dst src ,@(and (eql twiddle t) '(twiddle)))
                        ,@(and twiddle '((ignorable twiddle)))
@@ -81,7 +82,8 @@
                                                       (let ((factor (/ (mod (* i j -1 twiddle)
                                                                             total-size)
                                                                        total-size))
-                                                            (coef   `(aref twiddle ,(+ total-size dst-index))))
+                                                            (coef   `(aref twiddle ,(+ twiddle-base
+                                                                                       dst-index))))
                                                         (case factor
                                                           (0 src)
                                                           (1/2
@@ -102,7 +104,7 @@
                        `((,(generate-inner-transpose-body size1 twiddle)
                            dst dst-offset ,size2
                            src src-offset ,size1
-                           ,@(and twiddle `(twiddle ,total-size)))))
+                           ,@(and twiddle `(twiddle ,twiddle-base)))))
                       ((< size1 size2)
                        (assert (= (* 2 size1) size2))
                        (let* ((size  size1)
@@ -111,10 +113,10 @@
                          (cond ((> block *transpose-unroll*)
                                 `((,op dst dst-offset ,size2
                                        src src-offset ,size1
-                                       ,@(and twiddle `(twiddle ,total-size)))
+                                       ,@(and twiddle `(twiddle ,twiddle-base)))
                                   (,op dst (+ dst-offset  ,size) ,size2
                                        src (+ src-offset ,block) ,size1
-                                       ,@(and twiddle `(twiddle ,(+ total-size size))))))
+                                       ,@(and twiddle `(twiddle ,(+ twiddle-base size))))))
                                (twiddle
                                 `((loop repeat 2
                                         for offset of-type index
@@ -123,7 +125,7 @@
                                           from src-offset by ,block
                                         do (,op dst     (+ offset dst-offset) ,size2
                                                 src     src-offset            ,size1
-                                                twiddle (+ offset ,total-size)))))
+                                                twiddle (+ offset ,twiddle-base)))))
                                (t
                                 `((loop repeat 2
                                         for dst-offset of-type index
@@ -140,10 +142,10 @@
                          (cond ((> block *transpose-unroll*)
                                 `((,op dst dst-offset ,size2
                                        src src-offset ,size1
-                                       ,@(and twiddle `(twiddle ,total-size)))
+                                       ,@(and twiddle `(twiddle ,twiddle-base)))
                                   (,op dst (+ ,block dst-offset) ,size2
                                        src (+ ,size  src-offset) ,size1
-                                       ,@(and twiddle `(twiddle ,(+ total-size block))))))
+                                       ,@(and twiddle `(twiddle ,(+ twiddle-base block))))))
                                (twiddle
                                 `((loop repeat 2
                                         for offset of-type index
@@ -152,7 +154,7 @@
                                           from src-offset by ,size
                                         do (,op dst     (+ offset dst-offset) ,size2
                                                 src     src-offset            ,size1
-                                                twiddle (+ offset ,total-size)))))
+                                                twiddle (+ offset ,twiddle-base)))))
                                (t
                                 `((loop repeat 2
                                         for dst-offset of-type index

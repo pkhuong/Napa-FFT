@@ -121,7 +121,8 @@
   `(,name (twiddle size dst dst-offset src src-offset ,@(and scale '(scale)) tmp1 tmp2 tmp-offset)
             (declare (type complex-sample-array twiddle dst src tmp1 tmp2)
                      ,@(and scale '((type double-float scale)))
-                     (type index size dst-offset src-offset tmp-offset))
+                     (type index dst-offset src-offset tmp-offset)
+                     (type (and index (integer 1)) size))
             (let ((len (integer-length (1- size))))
               (when (<= len ,lb-specialized-size)
                 (return-from ,name (funcall (aref ,(or scale-vector-name vector-name) len)
@@ -215,7 +216,7 @@
   `((,inner-name (dst dst-offset dst-stride src src-offset src-stride size
                       ,@(and twiddle '(twiddle twiddle-offset)))
       (declare (type complex-sample-array dst src ,@(and twiddle '(twiddle)))
-               (type index dst-offset src-offset size ,@(and twiddle '(twiddle-offset)))
+               (type index dst-offset src-offset ,@(and twiddle '(twiddle-offset)))
                (type half-index dst-stride src-stride size))
       (cond ((= size ,half-size)
              ;; other cases are picked off by specialised FFTs
@@ -271,13 +272,14 @@
                               (:parallel (>= (* size/2 size/2) 1024)))
                  (declare (ignore aa ab ba bb)))))))
     (,outer-name (dst dst-offset src src-offset size1 size2
-                      ,@(and twiddle '(twiddle &aux (total-size (* size1 size2)))))
+                      ,@(and twiddle '(twiddle &aux (twiddle-base (+ (* size1 size2)
+                                                                     +factor-bias+)))))
       (declare (type complex-sample-array dst src ,@(and twiddle '(twiddle)))
-               (type index dst-offset src-offset ,@(and twiddle '(total-size)))
+               (type index dst-offset src-offset ,@(and twiddle '(twiddle-base)))
                (type half-index size1 size2))
       (cond ((= size1 size2)
              (,inner-name dst dst-offset size2 src src-offset size1 size1
-                          ,@(and twiddle '(twiddle total-size))))
+                          ,@(and twiddle '(twiddle twiddle-base))))
             ((< size1 size2)
              (let* ((size  size1)
                     (block (* size size)))
@@ -286,11 +288,11 @@
                 ((a (,inner-name dst dst-offset size2
                                  src src-offset size1
                                  size
-                                 ,@(and twiddle '(twiddle total-size))))
+                                 ,@(and twiddle '(twiddle twiddle-base))))
                  (b (,inner-name dst (+ size  dst-offset) size2
                                  src (+ block src-offset) size1
                                  size
-                                 ,@(and twiddle '(twiddle (+ size total-size)))))
+                                 ,@(and twiddle '(twiddle (+ size twiddle-base)))))
                  #+xecto-parallel (:parallel (>= (* size size) 1024)))
                 (declare (ignore a b)))))
             (t
@@ -301,11 +303,11 @@
                 ((a (,inner-name dst dst-offset size2
                                  src src-offset size1
                                  size
-                                 ,@(and twiddle '(twiddle total-size))))
+                                 ,@(and twiddle '(twiddle twiddle-base))))
                  (b (,inner-name dst (+ block dst-offset) size2
                                  src (+ size  src-offset) size1
                                  size
-                                 ,@(and twiddle '(twiddle (+ block total-size)))))
+                                 ,@(and twiddle '(twiddle (+ block twiddle-base)))))
                  #+xecto-parallel (:parallel (>= (* size size) 1024)))
                  (declare (ignore a b)))))))))
 
